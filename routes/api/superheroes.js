@@ -2,6 +2,9 @@ const express = require("express");
 const createError = require("http-errors");
 const Joi = require("joi");
 const superheroes = require("../../models/fnSuperhero");
+const upload = require("../../midelware/upload");
+const fs = require("fs/promises");
+const path = require("path");
 
 const superheroSchema = Joi.object({
   nickname: Joi.string().required(),
@@ -9,7 +12,7 @@ const superheroSchema = Joi.object({
   origin_description: Joi.string().required(),
   superpowers: Joi.string().required(),
   catch_phrase: Joi.string().required(),
-  Images: Joi.string().required(),
+  Images: Joi.string(),
 });
 
 const router = express.Router();
@@ -35,29 +38,38 @@ router.get("/:id", async (req, res, next) => {
     next(error);
   }
 });
+const superheroDir = path.join("image");
 
-router.post("/", async (req, res, next) => {
+router.post("/", upload.single("image"), async (req, res, next) => {
+  const { path: tempUpload, filename } = req.file;
+
   try {
+    const resultUpload = path.join(superheroDir, filename);
+    await fs.rename(tempUpload, resultUpload);
+    const Image = path.join("image", filename);
+
     const { error } = superheroSchema.validate(req.body);
     if (error) {
       throw new createError(400, error.message);
     }
+
     const {
       nickname,
       real_name,
       origin_description,
       superpowers,
       catch_phrase,
-      Images,
     } = req.body;
+
     const result = await superheroes.add(
       nickname,
       real_name,
       origin_description,
       superpowers,
       catch_phrase,
-      Images
+      Image
     );
+
     res.status(201).json(result);
   } catch (error) {
     next(error);
