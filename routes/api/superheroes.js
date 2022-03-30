@@ -8,10 +8,10 @@ const path = require("path");
 
 const superheroSchema = Joi.object({
   nickname: Joi.string().required(),
-  real_name: Joi.string().required(),
-  origin_description: Joi.string().required(),
-  superpowers: Joi.string().required(),
-  catch_phrase: Joi.string().required(),
+  real_name: Joi.string(),
+  origin_description: Joi.string(),
+  superpowers: Joi.string(),
+  catch_phrase: Joi.string(),
   Images: Joi.string(),
 });
 
@@ -22,6 +22,7 @@ router.get("/", async (req, res, next) => {
     const result = await superheroes.getAll();
     res.json(result);
   } catch (error) {
+    r;
     next(error);
   }
 });
@@ -46,7 +47,7 @@ router.post("/", upload.single("image"), async (req, res, next) => {
   try {
     const resultUpload = path.join(superheroDir, filename);
     await fs.rename(tempUpload, resultUpload);
-    const Image = path.join("image", filename);
+    const Image = path.join(filename);
 
     const { error } = superheroSchema.validate(req.body);
     if (error) {
@@ -76,8 +77,13 @@ router.post("/", upload.single("image"), async (req, res, next) => {
   }
 });
 
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", upload.single("image"), async (req, res, next) => {
+  const { path: tempUpload, filename } = req.file;
   try {
+    const resultUpload = path.join(superheroDir, filename);
+    await fs.rename(tempUpload, resultUpload);
+    const Image = path.join(filename);
+
     const { error } = superheroSchema.validate(req.body);
     if (error) {
       throw new createError(400, error.message);
@@ -89,7 +95,6 @@ router.put("/:id", async (req, res, next) => {
       origin_description,
       superpowers,
       catch_phrase,
-      Images,
     } = req.body;
     const result = await superheroes.updateById(
       id,
@@ -98,7 +103,7 @@ router.put("/:id", async (req, res, next) => {
       origin_description,
       superpowers,
       catch_phrase,
-      Images
+      Image
     );
     if (!result) {
       throw new createError(404, "Not found");
